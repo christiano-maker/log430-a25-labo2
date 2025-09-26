@@ -8,6 +8,8 @@ from models.order_item import OrderItem
 from models.order import Order
 from queries.read_order import get_orders_from_mysql
 from db import get_sqlalchemy_session, get_redis_conn
+import json
+
 
 def add_order(user_id: int, items: list):
     """Insert order with items in MySQL, keep Redis in sync"""
@@ -99,12 +101,31 @@ def delete_order(order_id: int):
 
 def add_order_to_redis(order_id, user_id, total_amount, items):
     """Insert order to Redis"""
+    
     r = get_redis_conn()
+    key = f"order:{order_id}"
+    r.hset(key, mapping={
+        "id": str(order_id),
+        "user_id": str(user_id),
+        "total_amount": str(total_amount),
+        "items": json.dumps(items)
+
+    })
+    r.zadd("orders", {key: order_id})
+    for item in items:
+        product_id = item["product_id"]
+        quantity = int(item["quantity"])
+        r.incrby(f"product:{product_id}", quantity)
+       
     print(r)
 
 def delete_order_from_redis(order_id):
     """Delete order from Redis"""
-    pass
+    r = get_redis_conn()
+    key = f"order:{order_id}"
+    r.delete(key)
+    r.zrem("orders", key)
+
 
 def sync_all_orders_to_redis():
     """ Sync orders from MySQL to Redis """
@@ -115,9 +136,17 @@ def sync_all_orders_to_redis():
     try:
         if len(orders_in_redis) == 0:
             # mysql
-            orders_from_mysql = []
+            orders_from_mysql = get_orders_from_mysql(9999)
             for order in orders_from_mysql:
                 # TODO: terminez l'implementation
+                if r.exists(f"order:{order.id}"):
+                   continue
+                r.hset(f"order:{order.id}", mapping={
+                  "id": str(order.id),
+                  "user_id":  str(getattr(order, "user_id", "inconnu")),
+                  "total_amount": str(getattr(order, "total_amount", 0)),
+                })
+                r.zadd("orders", {f"order:{order.id}": order.id})
                 print(order)
             rows_added = len(orders_from_mysql)
         else:
@@ -125,5 +154,5 @@ def sync_all_orders_to_redis():
     except Exception as e:
         print(e)
         return 0
-    finally:
-        return len(orders_in_redis) + rows_added
+    #finally:
+    return len(orders_in_redis) + rows_added

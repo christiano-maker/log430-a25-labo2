@@ -5,14 +5,20 @@ Auteurs : Gabriel C. Ullmann, Fabio Petrillo, 2025
 """
 import numbers
 from views.template_view import get_template, get_param
-from controllers.order_controller import create_order, delete_order, list_orders_from_mysql
+from controllers.order_controller import create_order, delete_order, list_orders_from_mysql, list_orders_from_redis
 from controllers.product_controller import list_products
 from controllers.user_controller import list_users
 
 def show_order_form():
     """ Show order form and list """
     # TODO: utilisez Redis seulement
-    orders = list_orders_from_mysql(10)
+    print(">>> show_order_form() CALLED", flush=True)
+    orders = list_orders_from_redis(10)
+    print("DEBUG orders:", orders, flush=True)
+    if orders:
+     for o in orders:
+        print(" ->", getattr(o, "id", None), getattr(o, "total_amount", None), flush=True)
+
     products = list_products(99)
     users = list_users(99)
     order_rows = [f"""
