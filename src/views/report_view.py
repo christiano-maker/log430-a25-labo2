@@ -60,7 +60,7 @@ def show_best_sellers():
             <tr>
                 <th>Rang</th>
                 <th>ID Produit</th>
-                <th>Quantité vendue</th>
+                <th>Quantité vendueee</th>
             </tr>
             {" ".join(product_rows)}
         </table>
