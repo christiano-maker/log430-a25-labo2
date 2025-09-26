@@ -12,9 +12,7 @@ from controllers.user_controller import list_users
 def show_order_form():
     """ Show order form and list """
     # TODO: utilisez Redis seulement
-    print(">>> show_order_form() CALLED", flush=True)
     orders = list_orders_from_redis(10)
-    print("DEBUG orders:", orders, flush=True)
     if orders:
      for o in orders:
         print(" ->", getattr(o, "id", None), getattr(o, "total_amount", None), flush=True)
